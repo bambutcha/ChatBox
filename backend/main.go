@@ -1,60 +1,69 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	yagalog "github.com/Chelaran/yagalog"
 )
 
 type Message struct {
-	ID        int    `json:"id"`
-	Text      string `json:"text"`
-	Timestamp string `json:"timestamp"`
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	Text      string    `gorm:"not null" json:"text"`
+	Timestamp time.Time `gorm:"not null;default:now()" json:"timestamp"`
 }
 
 type MessageStore struct {
-	mu       sync.RWMutex
-	messages []Message
-	nextID   int
+	db *gorm.DB
 }
 
-func NewMessageStore() *MessageStore {
-	return &MessageStore{
-		messages: make([]Message, 0),
-		nextID:   1,
-	}
+func NewMessageStore(db *gorm.DB) *MessageStore {
+	return &MessageStore{db: db}
 }
 
-func (ms *MessageStore) AddMessage(text string) Message {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
+func (ms *MessageStore) AddMessage(ctx context.Context, text string) (Message, error) {
 	msg := Message{
-		ID:        ms.nextID,
 		Text:      text,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: time.Now(),
 	}
-	ms.messages = append(ms.messages, msg)
-	ms.nextID++
-	return msg
+	
+	if err := ms.db.WithContext(ctx).Create(&msg).Error; err != nil {
+		return Message{}, err
+	}
+	
+	return msg, nil
 }
 
-func (ms *MessageStore) GetAllMessages() []Message {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
-
-	result := make([]Message, len(ms.messages))
-	copy(result, ms.messages)
-	return result
+func (ms *MessageStore) GetAllMessages(ctx context.Context) ([]Message, error) {
+	var messages []Message
+	if err := ms.db.WithContext(ctx).Order("timestamp ASC").Find(&messages).Error; err != nil {
+		return nil, err
+	}
+	return messages, nil
 }
 
 type CreateMessageRequest struct {
 	Text string `json:"text"`
+}
+
+type MessageResponse struct {
+	ID        uint   `json:"id"`
+	Text      string `json:"text"`
+	Timestamp string `json:"timestamp"`
+}
+
+func toResponse(msg Message) MessageResponse {
+	return MessageResponse{
+		ID:        msg.ID,
+		Text:      msg.Text,
+		Timestamp: msg.Timestamp.Format(time.RFC3339),
+	}
 }
 
 func main() {
@@ -64,9 +73,28 @@ func main() {
 	}
 	defer logger.Close()
 
-	store := NewMessageStore()
+	// Database connection
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		dbURL = "host=postgres user=postgres password=postgres dbname=chatbox port=5432 sslmode=disable"
+	}
+
+	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
+	if err != nil {
+		logger.Fatal("failed to connect to database: %v", err)
+	}
+
+	// Auto migrate
+	if err := db.AutoMigrate(&Message{}); err != nil {
+		logger.Fatal("failed to migrate database: %v", err)
+	}
+	logger.Info("database migrated successfully")
+
+	store := NewMessageStore(db)
 
 	http.HandleFunc("/api/messages", func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -79,8 +107,19 @@ func main() {
 
 		switch r.Method {
 		case "GET":
-			messages := store.GetAllMessages()
-			if err := json.NewEncoder(w).Encode(messages); err != nil {
+			messages, err := store.GetAllMessages(ctx)
+			if err != nil {
+				logger.Error("failed to get messages: %v", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+				return
+			}
+			
+			responses := make([]MessageResponse, len(messages))
+			for i, msg := range messages {
+				responses[i] = toResponse(msg)
+			}
+			
+			if err := json.NewEncoder(w).Encode(responses); err != nil {
 				logger.Error("failed to encode messages: %v", err)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 				return
@@ -100,8 +139,15 @@ func main() {
 				return
 			}
 
-			msg := store.AddMessage(req.Text)
-			if err := json.NewEncoder(w).Encode(msg); err != nil {
+			msg, err := store.AddMessage(ctx, req.Text)
+			if err != nil {
+				logger.Error("failed to add message: %v", err)
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			response := toResponse(msg)
+			if err := json.NewEncoder(w).Encode(response); err != nil {
 				logger.Error("failed to encode message: %v", err)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 				return

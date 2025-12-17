@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -112,7 +113,11 @@ func main() {
 		}
 	})
 
-	port := ":8080"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	port = ":" + port
 	logger.Info("starting server on port %s", port)
 	if err := http.ListenAndServe(port, nil); err != nil {
 		logger.Fatal("server failed: %v", err)

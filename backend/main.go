@@ -11,9 +11,9 @@ import (
 )
 
 type Message struct {
-	ID        int       `json:"id"`
-	Text      string    `json:"text"`
-	Timestamp time.Time `json:"timestamp"`
+	ID        int    `json:"id"`
+	Text      string `json:"text"`
+	Timestamp string `json:"timestamp"`
 }
 
 type MessageStore struct {
@@ -36,7 +36,7 @@ func (ms *MessageStore) AddMessage(text string) Message {
 	msg := Message{
 		ID:        ms.nextID,
 		Text:      text,
-		Timestamp: time.Now(),
+		Timestamp: time.Now().Format(time.RFC3339),
 	}
 	ms.messages = append(ms.messages, msg)
 	ms.nextID++
@@ -118,4 +118,3 @@ func main() {
 		logger.Fatal("server failed: %v", err)
 	}
 }
-

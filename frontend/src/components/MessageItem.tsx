@@ -15,23 +15,18 @@ const MessageItem = ({ message }: MessageItemProps) => {
   }
 
   return (
-    <div className="flex justify-end">
-      <div className="flex items-end gap-1 max-w-[70%]">
-        <div className="bg-green-200 rounded-2xl rounded-br-sm px-4 py-2 shadow-sm">
-          <p className="text-gray-800 text-sm whitespace-pre-wrap break-words">
+    <div className="flex justify-end mb-1">
+      <div className="flex items-end gap-1.5 max-w-[75%]">
+        <div className="bg-[#DCF8C6] rounded-2xl rounded-br-[4px] px-3 py-1.5 shadow-sm">
+          <p className="text-[#000000] text-[15px] leading-[20px] whitespace-pre-wrap break-words">
             {message.text}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-0.5 pb-1">
-          <span className="text-xs text-gray-600">{formatTime(message.timestamp)}</span>
-          <div className="flex items-center">
-            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            <svg className="w-3 h-3 text-green-600 -ml-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-          </div>
+        <div className="flex items-center gap-1 pb-0.5">
+          <span className="text-[11px] text-[#667781] leading-none">{formatTime(message.timestamp)}</span>
+          <svg className="w-[13px] h-[13px] text-[#53BDEB]" fill="currentColor" viewBox="0 0 16 15">
+            <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.879a.32.32 0 0 1-.484.033l-.358-.325a.319.319 0 0 0-.484.032l-.378.483a.418.418 0 0 0 .036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.175a.366.366 0 0 0-.063-.51zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.879a.32.32 0 0 1-.484.033L1.891 7.769a.366.366 0 0 0-.515.006l-.423.433a.364.364 0 0 0 .006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.175a.365.365 0 0 0-.063-.51z"/>
+          </svg>
         </div>
       </div>
     </div>

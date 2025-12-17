@@ -82,7 +82,7 @@ function App() {
       </div>
 
       <ChatHeader />
-      <div className="flex-1 overflow-y-auto px-3 py-2 relative z-10">
+      <div className="flex-1 overflow-y-auto px-3 py-2 pt-4 relative z-10">
         <MessageList messages={messages} />
         <div ref={messagesEndRef} />
       </div>

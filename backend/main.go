@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
+	yagalog "github.com/Chelaran/yagalog"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	yagalog "github.com/Chelaran/yagalog"
 )
 
 type Message struct {
@@ -32,11 +32,11 @@ func (ms *MessageStore) AddMessage(ctx context.Context, text string) (Message, e
 		Text:      text,
 		Timestamp: time.Now(),
 	}
-	
+
 	if err := ms.db.WithContext(ctx).Create(&msg).Error; err != nil {
 		return Message{}, err
 	}
-	
+
 	return msg, nil
 }
 
@@ -94,7 +94,7 @@ func main() {
 
 	http.HandleFunc("/api/messages", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -113,12 +113,12 @@ func main() {
 				http.Error(w, "internal server error", http.StatusInternalServerError)
 				return
 			}
-			
+
 			responses := make([]MessageResponse, len(messages))
 			for i, msg := range messages {
 				responses[i] = toResponse(msg)
 			}
-			
+
 			if err := json.NewEncoder(w).Encode(responses); err != nil {
 				logger.Error("failed to encode messages: %v", err)
 				http.Error(w, "internal server error", http.StatusInternalServerError)
